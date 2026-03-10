@@ -5,6 +5,8 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const PasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string().min(6, 'Password must be at least 6 characters'),

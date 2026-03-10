@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import ActivityLog from '@/models/ActivityLog';
 import { getSession, successResponse, errorResponse, buildPaginationQuery } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();

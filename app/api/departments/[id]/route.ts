@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import dbConnect from '@/lib/db';
 import Department from '@/models/Department';
-import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
+import { getSession, successResponse, errorResponse, buildPaginationQuery } from '@/lib/api-helpers';
+
+export const dynamic = 'force-dynamic';
 
 const UpdateSchema = z.object({
   name: z.string().min(1).max(100).optional(),

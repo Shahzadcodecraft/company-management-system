@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Expense from '@/models/Expense';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const UpdateSchema = z.object({
   status: z.enum(['Pending', 'Approved', 'Rejected']).optional(),
   notes: z.string().optional(),

@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Notification from '@/models/Notification';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 // PATCH /api/notifications/[id] - Mark single notification as read
 export async function PATCH(
   req: NextRequest,

@@ -5,6 +5,8 @@ import Department from '@/models/Department';
 import Employee from '@/models/Employee';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const DeptSchema = z.object({
   name: z.string().min(1).max(100),
   head: z.string().min(1).max(100),

@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Expense from '@/models/Expense';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const ExpenseSchema = z.object({
   description: z.string().min(1).max(500),
   category: z.enum(['Technology', 'Software', 'Marketing', 'HR', 'Operations', 'Training', 'Travel', 'Other']),

@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Task from '@/models/Task';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const UpdateSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().optional(),

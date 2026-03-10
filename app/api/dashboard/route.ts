@@ -7,6 +7,8 @@ import Task from '@/models/Task';
 import Expense from '@/models/Expense';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();

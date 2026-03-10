@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
 import { getSession, successResponse, errorResponse, buildPaginationQuery, logActivity } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const ProjectSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional().default(''),

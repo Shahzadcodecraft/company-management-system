@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Employee from '@/models/Employee';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const UpdateSchema = z.object({
   name: z.string().min(2).max(100).optional(),
   email: z.string().email().optional(),

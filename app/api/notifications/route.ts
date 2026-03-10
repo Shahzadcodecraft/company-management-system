@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Notification from '@/models/Notification';
 import { getSession, successResponse, errorResponse, generateAppNotifications } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();

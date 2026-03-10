@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 const SettingsSchema = z.object({
   companyName: z.string().min(1).max(100).optional(),
   timezone: z.string().optional(),

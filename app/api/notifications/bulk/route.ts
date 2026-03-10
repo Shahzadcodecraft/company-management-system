@@ -3,6 +3,8 @@ import dbConnect from '@/lib/db';
 import Notification from '@/models/Notification';
 import { getSession, successResponse, errorResponse } from '@/lib/api-helpers';
 
+export const dynamic = 'force-dynamic';
+
 // POST /api/notifications/bulk - Bulk operations
 export async function POST(req: NextRequest) {
   try {
