@@ -1,7 +1,7 @@
 'use client';
 
 import { useDashboard } from '@/lib/hooks/useApi';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 const C = {
   accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)',
@@ -56,10 +56,17 @@ export default function DashboardClient() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    let rafId: number;
+    const checkMobile = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setIsMobile(window.innerWidth <= 768));
+    };
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   if (isLoading) return (
@@ -83,8 +90,11 @@ export default function DashboardClient() {
   const performanceByDept = data?.performanceByDept || [];
   const recentProjects = data?.recentProjects || [];
 
-  const taskStatusMap: Record<string, number> = {};
-  taskDist.forEach((t: any) => { taskStatusMap[t._id] = t.count; });
+  const taskStatusMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    taskDist.forEach((t: any) => { map[t._id] = t.count; });
+    return map;
+  }, [taskDist]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, fontFamily: "'DM Sans', sans-serif" }}>
