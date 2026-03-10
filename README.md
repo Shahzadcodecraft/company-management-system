@@ -2,7 +2,7 @@
 
 > A full-stack, production-ready Company Management System built with **Next.js 14**, **TypeScript**, **MongoDB**, and **NextAuth.js**. Features a dark-themed dashboard, role-based access control, and complete CRUD for every module.
 
-![NexusCMS Dashboard](https://company-management-system-eight.vercel.app/login)
+
 
 ---
 
