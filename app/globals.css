@@ -1,0 +1,174 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Dark theme (default) */
+  --bg: #0A0B0F;
+  --surface: #111318;
+  --surface-hover: #161B22;
+  --border: #1E2430;
+  --border-light: #252D3A;
+  --accent: #4F8EF7;
+  --accent-hover: #3B7AE8;
+  --accent-glow: rgba(79, 142, 247, 0.15);
+  --success: #2DD4A0;
+  --warning: #F59E0B;
+  --danger: #F04F5A;
+  --purple: #9B6FF5;
+  --text: #E8ECF2;
+  --text-muted: #6B7A99;
+  --text-dim: #3A4560;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-hover: #F1F5F9;
+  --border: #E2E8F0;
+  --border-light: #CBD5E1;
+  --accent: #4F8EF7;
+  --accent-hover: #3B7AE8;
+  --accent-glow: rgba(79, 142, 247, 0.15);
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --purple: #8B5CF6;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --text-dim: #94A3B8;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+input, select, textarea {
+  color-scheme: var(--theme);
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+input, select, textarea {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Make date picker icon visible in dark mode */
+:root ::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+:root ::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+/* Light mode - no invert needed */
+[data-theme='light'] ::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Responsive utilities - Mobile First */
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* Additional responsive breakpoints */
+@media (max-width: 1024px) {
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) {
+  .hide-desktop-lg {
+    display: none !important;
+  }
+}
+
+/* Touch-friendly tap targets on mobile */
+@media (max-width: 768px) {
+  button, a, input, select, textarea {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
