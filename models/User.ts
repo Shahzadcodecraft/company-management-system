@@ -38,7 +38,7 @@ const UserSchema = new Schema<IUser>(
     settings: {
       companyName: { type: String, default: 'NexusCorp Inc.' },
       timezone: { type: String, default: 'UTC-5' },
-      currency: { type: String, default: 'USD' },
+      currency: { type: String, default: 'PKR' },
       notifications: { type: Boolean, default: true },
       emailAlerts: { type: Boolean, default: true },
       twoFA: { type: Boolean, default: false },

@@ -42,7 +42,7 @@ export async function GET() {
       settings: user.settings || {
         companyName: 'NexusCorp Inc.',
         timezone: 'UTC-5',
-        currency: 'USD',
+        currency: 'PKR',
         notifications: true,
         emailAlerts: true,
         twoFA: false,
@@ -112,7 +112,7 @@ export async function PUT(req: NextRequest) {
       settings: updatedUser?.settings || {
         companyName: 'NexusCorp Inc.',
         timezone: 'UTC-5',
-        currency: 'USD',
+        currency: 'PKR',
         notifications: true,
         emailAlerts: true,
         twoFA: false,

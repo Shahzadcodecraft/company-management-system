@@ -1,7 +1,7 @@
 'use client';
 
-import { useDashboard } from '@/lib/hooks/useApi';
-import { useState, useEffect, useMemo } from 'react';
+import { useDashboard, useSettings } from '@/lib/hooks/useApi';
+import { useState, useEffect } from 'react';
 
 const C = {
   accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)',
@@ -10,10 +10,11 @@ const C = {
   surface: 'var(--surface)', border: 'var(--border)', bg: 'var(--bg)',
 };
 
-function fmt(n: number) {
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
-  return `$${n}`;
+function fmt(n: number, currency = 'PKR') {
+  const symbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  if (n >= 1000000) return `${symbol}${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${symbol}${(n / 1000).toFixed(0)}K`;
+  return `${symbol}${n}`;
 }
 
 function Card({ children, style = {} }: { children: React.ReactNode; style?: React.CSSProperties }) {
@@ -53,6 +54,8 @@ function ProgressBar({ value, color = C.accent }: { value: number; color?: strin
 
 export default function DashboardClient() {
   const { data, isLoading, error } = useDashboard();
+  const { data: settingsData } = useSettings();
+  const currency = settingsData?.settings?.currency || 'PKR';
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -90,11 +93,8 @@ export default function DashboardClient() {
   const performanceByDept = data?.performanceByDept || [];
   const recentProjects = data?.recentProjects || [];
 
-  const taskStatusMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    taskDist.forEach((t: any) => { map[t._id] = t.count; });
-    return map;
-  }, [taskDist]);
+  const taskStatusMap: Record<string, number> = {};
+  taskDist.forEach((t: any) => { taskStatusMap[t._id] = t.count; });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, fontFamily: "'DM Sans', sans-serif" }}>
@@ -103,7 +103,7 @@ export default function DashboardClient() {
         <StatCard title="Total Employees" value={stats.totalEmployees || 0} icon="👥" color={C.accent} subtitle={`${stats.activeEmployees || 0} active`} />
         <StatCard title="Active Projects" value={stats.activeProjects || 0} icon="📐" color={C.success} subtitle={`${stats.totalProjects || 0} total`} />
         <StatCard title="Pending Tasks" value={stats.pendingTasks || 0} icon="✦" color={C.warning} subtitle={`${stats.doneTasks || 0} completed`} />
-        <StatCard title="Approved Expenses" value={fmt(stats.approvedExpensesTotal || 0)} icon="💳" color={C.purple} subtitle={`${stats.pendingExpenses || 0} pending`} />
+        <StatCard title="Approved Expenses" value={fmt(stats.approvedExpensesTotal || 0, currency)} icon="💳" color={C.purple} subtitle={`${stats.pendingExpenses || 0} pending`} />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.6fr 1fr', gap: 16 }}>

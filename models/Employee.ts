@@ -7,6 +7,7 @@ export interface IEmployee extends Document {
   department: Types.ObjectId | string;
   salary: number;
   status: 'Active' | 'Inactive' | 'On Leave';
+  workType: 'Onsite' | 'Remote' | 'Hybrid';
   joinDate: Date;
   endDate?: Date;
   avatar: string;
@@ -26,6 +27,7 @@ const EmployeeSchema = new Schema<IEmployee>(
     department: { type: Schema.Types.ObjectId, ref: 'Department' },
     salary: { type: Number, required: true, min: 0 },
     status: { type: String, enum: ['Active', 'Inactive', 'On Leave'], default: 'Active' },
+    workType: { type: String, enum: ['Onsite', 'Remote', 'Hybrid'], default: 'Onsite' },
     joinDate: { type: Date, default: Date.now },
     endDate: { type: Date },
     avatar: { type: String },

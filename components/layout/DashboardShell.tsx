@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/departments', label: 'Departments', icon: '🏢', section: 'Organization' },
   { href: '/dashboard/projects', label: 'Projects', icon: '📐', section: 'Work' },
   { href: '/dashboard/tasks', label: 'Tasks', icon: '✦', section: 'Work' },
+  { href: '/dashboard/salary', label: 'Salary', icon: '💵', section: 'Finance' },
   { href: '/dashboard/finance', label: 'Finance', icon: '💳', section: 'Finance' },
   { href: '/dashboard/reports', label: 'Reports', icon: '📊', section: 'Finance' },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙', section: 'System' },

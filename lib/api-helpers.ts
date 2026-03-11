@@ -145,7 +145,7 @@ export async function generateAppNotifications(userId: string) {
         userId,
         type: 'budget_alert',
         title: 'Budget Alert',
-        message: `${project.title} budget is at ${percentUsed}% ($${project.spent.toLocaleString()} of $${project.budget.toLocaleString()})`,
+        message: `${project.title} budget is at ${percentUsed}% (PKR ${project.spent.toLocaleString()} of PKR ${project.budget.toLocaleString()})`,
         entityType: 'Project',
         entityId: project._id.toString(),
         priority: percentUsed > 95 ? 'high' : 'medium',

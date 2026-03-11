@@ -106,7 +106,11 @@ export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: unknown) => apiFetch('/api/projects', { method: 'POST', body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project created'); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['projects'] }); 
+      qc.invalidateQueries({ queryKey: ['investors'] }); 
+      toast.success('Project created'); 
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 }
@@ -118,7 +122,11 @@ export function useUpdateProject(id: string) {
       if (!id) throw new Error('No project selected');
       return apiFetch(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project updated'); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['projects'] }); 
+      qc.invalidateQueries({ queryKey: ['investors'] }); 
+      toast.success('Project updated'); 
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 }
@@ -127,7 +135,11 @@ export function useDeleteProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => apiFetch(`/api/projects/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['projects'] }); toast.success('Project deleted'); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['projects'] }); 
+      qc.invalidateQueries({ queryKey: ['investors'] }); 
+      toast.success('Project deleted'); 
+    },
     onError: (e: Error) => toast.error(e.message),
   });
 }
@@ -247,6 +259,54 @@ export function useUpdateSettings() {
   });
 }
 
+// ─── Salaries ───
+export function useSalaries(params?: Record<string, string>) {
+  const query = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ['salaries', params],
+    queryFn: () => apiFetch(`/api/salaries${query ? `?${query}` : ''}`),
+  });
+}
+
+export function useCreateSalary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => apiFetch('/api/salaries', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['salaries'], exact: false }); 
+      toast.success('Salary record created'); 
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateSalary(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => {
+      if (!id) throw new Error('No salary record selected');
+      return apiFetch(`/api/salaries/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['salaries'], exact: false }); 
+      toast.success('Salary record updated'); 
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteSalary() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/salaries/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['salaries'], exact: false }); 
+      toast.success('Salary record deleted'); 
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 export function useChangePassword() {
   return useMutation({
     mutationFn: (data: { currentPassword: string; newPassword: string }) => 
@@ -254,6 +314,45 @@ export function useChangePassword() {
     onSuccess: () => { 
       toast.success('Password changed successfully'); 
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+// ─── Investors ───
+export function useInvestors(params?: Record<string, string>) {
+  const query = new URLSearchParams(params).toString();
+  return useQuery({
+    queryKey: ['investors', params],
+    queryFn: () => apiFetch(`/api/investors${query ? `?${query}` : ''}`),
+  });
+}
+
+export function useCreateInvestor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => apiFetch('/api/investors', { method: 'POST', body: JSON.stringify(data) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['investors'] }); toast.success('Investor added'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateInvestor(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => {
+      if (!id) throw new Error('No investor selected');
+      return apiFetch(`/api/investors/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['investors'] }); toast.success('Investor updated'); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteInvestor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => apiFetch(`/api/investors/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['investors'] }); toast.success('Investor removed'); },
     onError: (e: Error) => toast.error(e.message),
   });
 }

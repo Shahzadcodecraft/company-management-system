@@ -11,6 +11,7 @@ const UpdateSchema = z.object({
   notes: z.string().optional(),
   description: z.string().optional(),
   amount: z.number().min(0).optional(),
+  receiptImage: z.string().optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {

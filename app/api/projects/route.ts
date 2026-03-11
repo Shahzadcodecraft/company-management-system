@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
+import Department from '@/models/Department';
+import Employee from '@/models/Employee';
 import { getSession, successResponse, errorResponse, buildPaginationQuery, logActivity } from '@/lib/api-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +16,7 @@ const ProjectSchema = z.object({
   priority: z.enum(['Low', 'Medium', 'High', 'Critical']).default('Medium'),
   budget: z.number().min(0).default(0),
   spent: z.number().min(0).default(0),
+  revenue: z.number().min(0).default(0),
   progress: z.number().min(0).max(100).default(0),
   startDate: z.string(),
   endDate: z.string(),
@@ -44,7 +47,15 @@ export async function GET(req: NextRequest) {
       Project.countDocuments(query),
     ]);
 
-    return successResponse({ projects, total, page, pages: Math.ceil(total / limit) });
+    // Ensure revenue field exists on all projects (for old documents)
+    const projectsWithRevenue = projects.map(p => ({
+      ...p,
+      revenue: p.revenue ?? 0,
+    }));
+
+    console.log('GET /api/projects - First project revenue:', projects[0]?.revenue);
+
+    return successResponse({ projects: projectsWithRevenue, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     console.error('GET /api/projects error:', err);
     return errorResponse('Server error', 500);

@@ -18,6 +18,7 @@ const ExpenseSchema = z.object({
   paidAt: z.string().optional(),
   receiptNumber: z.string().optional(),
   vendor: z.string().optional(),
+  receiptImage: z.string().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
     if (parsed.data.receiptNumber) expenseData.receiptNumber = parsed.data.receiptNumber;
     if (parsed.data.vendor) expenseData.vendor = parsed.data.vendor;
     if (parsed.data.notes) expenseData.notes = parsed.data.notes;
+    if (parsed.data.receiptImage) expenseData.receiptImage = parsed.data.receiptImage;
     
     const expense = await Expense.create(expenseData);
 

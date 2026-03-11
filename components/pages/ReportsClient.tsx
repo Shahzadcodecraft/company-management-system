@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useEmployees, useProjects, useTasks, useExpenses } from '@/lib/hooks/useApi';
+import { useEmployees, useProjects, useTasks, useExpenses, useSettings, useInvestors } from '@/lib/hooks/useApi';
 import { jsPDF } from 'jspdf';
 
 const C = { accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', purple: 'var(--purple)', text: 'var(--text)', textMuted: 'var(--text-muted)', surface: 'var(--surface)', border: 'var(--border)', bg: 'var(--bg)', surfaceHover: 'var(--surface-hover)' };
@@ -23,6 +23,10 @@ export default function ReportsClient() {
   const { data: projData } = useProjects({ limit: '100' });
   const { data: tasksData } = useTasks();
   const { data: expData } = useExpenses({ limit: '100' });
+  const { data: settingsData } = useSettings();
+  const { data: invData } = useInvestors();
+  const currency = settingsData?.settings?.currency || 'PKR';
+  const currencySymbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -35,17 +39,20 @@ export default function ReportsClient() {
   const projects = projData?.projects || [];
   const tasks: any[] = Array.isArray(tasksData) ? tasksData : [];
   const expenses: any[] = Array.isArray(expData) ? expData : [];
+  const investors: any[] = invData?.investors || [];
 
   const totalBudget = projects.reduce((s: number, p: any) => s + (p.budget || 0), 0);
   const totalSpent = projects.reduce((s: number, p: any) => s + (p.spent || 0), 0);
   const avgPerf = employees.length > 0 ? employees.reduce((s: number, e: any) => s + (e.performance || 85), 0) / employees.length : 0;
   const totalExpAmt = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0);
+  const totalInvestments = investors.reduce((s: number, i: any) => s + (i.investmentAmount || 0), 0);
 
   const REPORTS = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'employees', label: 'Workforce', icon: '👥' },
     { id: 'projects', label: 'Projects', icon: '📐' },
     { id: 'finance', label: 'Financial', icon: '💰' },
+    { id: 'investors', label: 'Investors', icon: '🤝' },
   ];
 
   function downloadCSV() {
@@ -82,6 +89,15 @@ export default function ReportsClient() {
         ];
         filename = `financial_report_${timestamp}.csv`;
         break;
+      case 'investors':
+        rows = [
+          ['Name', 'Email', 'Company', 'Investment Amount', 'Investment Date', 'Type', 'Payment Method', 'Status'],
+          ...investors.map((i: any) => [
+            i.name, i.email, i.company || '', String(i.investmentAmount || 0), i.investmentDate?.slice(0, 10) || '', i.investmentType || 'Other', i.paymentMethod || '', i.isActive ? 'Active' : 'Inactive'
+          ])
+        ];
+        filename = `investors_report_${timestamp}.csv`;
+        break;
       case 'overview':
       default:
         rows = [
@@ -89,9 +105,9 @@ export default function ReportsClient() {
           ['Total Employees', String(employees.length)],
           ['Average Performance', `${avgPerf.toFixed(1)}%`],
           ['Active Projects', String(projects.filter((p: any) => p.status === 'In Progress').length)],
-          ['Total Budget', `$${totalBudget.toLocaleString()}`],
-          ['Budget Used', `$${totalSpent.toLocaleString()}`],
-          ['Total Expenses', `$${totalExpAmt.toLocaleString()}`]
+          ['Total Budget', `${currency} ${totalBudget.toLocaleString()}`],
+          ['Budget Used', `${currency} ${totalSpent.toLocaleString()}`],
+          ['Total Expenses', `${currency} ${totalExpAmt.toLocaleString()}`]
         ];
         filename = `overview_report_${timestamp}.csv`;
     }
@@ -126,6 +142,10 @@ export default function ReportsClient() {
         doc.text('Financial Report', 14, y);
         filename = `financial_report_${timestamp}.pdf`;
         break;
+      case 'investors':
+        doc.text('Investors Report', 14, y);
+        filename = `investors_report_${timestamp}.pdf`;
+        break;
       case 'overview':
       default:
         doc.text('Overview Report', 14, y);
@@ -147,7 +167,8 @@ export default function ReportsClient() {
           y += 6;
           (doc as any).setFont('helvetica', 'normal');
           doc.setFontSize(9);
-          doc.text(`Role: ${e.role} | Dept: ${e.department?.name || '-'} | Salary: $${(e.salary || 0).toLocaleString()} | Performance: ${e.performance || 85}% | Status: ${e.status}`, 14, y);
+          const salary = (e.salary || 0).toLocaleString();
+          doc.text(`Role: ${e.role} | Dept: ${e.department?.name || '-'} | Salary: ${currency} ${salary} | Performance: ${e.performance || 85}% | Status: ${e.status}`, 14, y);
           y += 10;
         });
         break;
@@ -162,7 +183,9 @@ export default function ReportsClient() {
           doc.setFontSize(9);
           doc.text(`Status: ${p.status} | Priority: ${p.priority} | Progress: ${p.progress || 0}%`, 14, y);
           y += 5;
-          doc.text(`Budget: $${(p.budget || 0).toLocaleString()} | Spent: $${(p.spent || 0).toLocaleString()}`, 14, y);
+          const budget = (p.budget || 0).toLocaleString();
+          const spent = (p.spent || 0).toLocaleString();
+          doc.text(`Budget: ${currency} ${budget} | Spent: ${currency} ${spent}`, 14, y);
           y += 10;
         });
         break;
@@ -175,22 +198,42 @@ export default function ReportsClient() {
           y += 6;
           (doc as any).setFont('helvetica', 'normal');
           doc.setFontSize(9);
-          doc.text(`Category: ${e.category} | Dept: ${e.department} | Amount: $${(e.amount || 0).toLocaleString()} | Status: ${e.status}`, 14, y);
+          const amount = (e.amount || 0).toLocaleString();
+          doc.text(`Category: ${e.category} | Dept: ${e.department} | Amount: ${currency} ${amount} | Status: ${e.status}`, 14, y);
           y += 5;
           doc.text(`Date: ${e.date?.slice(0, 10) || '-'}`, 14, y);
+          y += 10;
+        });
+        break;
+      case 'investors':
+        investors.forEach((inv: any, i: number) => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFontSize(11);
+          (doc as any).setFont('helvetica', 'bold');
+          doc.text(`${i + 1}. ${inv.name}`, 14, y);
+          y += 6;
+          (doc as any).setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          const amount = (inv.investmentAmount || 0).toLocaleString();
+          doc.text(`Email: ${inv.email} | Company: ${inv.company || '-'} | Amount: ${currency} ${amount}`, 14, y);
+          y += 5;
+          doc.text(`Type: ${inv.investmentType || 'Other'} | Date: ${inv.investmentDate?.slice(0, 10) || '-'} | Status: ${inv.isActive ? 'Active' : 'Inactive'}`, 14, y);
           y += 10;
         });
         break;
       case 'overview':
       default:
         doc.setFontSize(12);
+        const tBudget = totalBudget.toLocaleString();
+        const tSpent = totalSpent.toLocaleString();
+        const tExp = totalExpAmt.toLocaleString();
         const metrics = [
           ['Total Employees', String(employees.length)],
           ['Average Performance', `${avgPerf.toFixed(1)}%`],
           ['Active Projects', String(projects.filter((p: any) => p.status === 'In Progress').length)],
-          ['Total Budget', `$${totalBudget.toLocaleString()}`],
-          ['Budget Used', `$${totalSpent.toLocaleString()} (${totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0}%)`],
-          ['Total Expenses', `$${totalExpAmt.toLocaleString()}`]
+          ['Total Budget', `${currency} ${tBudget}`],
+          ['Budget Used', `${currency} ${tSpent} (${totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0}%)`],
+          ['Total Expenses', `${currency} ${tExp}`]
         ];
         metrics.forEach(([label, value]) => {
           (doc as any).setFont('helvetica', 'bold');
@@ -268,7 +311,7 @@ export default function ReportsClient() {
                   <div key={cat} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{cat}</span>
-                      <span style={{ fontSize: 12, color: C.textMuted }}>${catTotal.toLocaleString()}</span>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>{currencySymbol}{catTotal.toLocaleString()}</span>
                     </div>
                     <ProgressBar value={pct} color={colors[i]} />
                   </div>
@@ -298,7 +341,7 @@ export default function ReportsClient() {
                     <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>{emp.name}</td>
                     <td style={{ padding: '12px 16px', fontSize: 12, color: C.textMuted }}>{emp.department?.name || emp.department || '—'}</td>
                     <td style={{ padding: '12px 16px' }}><Badge label={emp.role} /></td>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>${(emp.salary || 0).toLocaleString()}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>{currencySymbol}{(emp.salary || 0).toLocaleString()}</td>
                     <td style={{ padding: '12px 16px', minWidth: 130 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ flex: 1 }}><ProgressBar value={emp.performance || 85} color={(emp.performance || 85) > 90 ? C.success : C.accent} /></div>
@@ -331,7 +374,7 @@ export default function ReportsClient() {
               </div>
               <ProgressBar value={p.progress || 0} color={(p.progress || 0) >= 100 ? C.success : (p.progress || 0) > 50 ? C.accent : C.warning} />
               <div style={{ display: 'flex', gap: 24, marginTop: 10 }}>
-                {[['Budget', `$${(p.budget || 0).toLocaleString()}`], ['Spent', `$${(p.spent || 0).toLocaleString()}`], ['Start', p.startDate?.slice(0, 10) || '—'], ['End', p.endDate?.slice(0, 10) || '—']].map(([l, v]) => (
+                {[['Budget', `${currencySymbol}${(p.budget || 0).toLocaleString()}`], ['Spent', `${currencySymbol}${(p.spent || 0).toLocaleString()}`], ['Start', p.startDate?.slice(0, 10) || '—'], ['End', p.endDate?.slice(0, 10) || '—']].map(([l, v]) => (
                   <span key={l} style={{ fontSize: 11, color: C.textMuted }}><strong style={{ color: C.text }}>{l}:</strong> {v}</span>
                 ))}
               </div>
@@ -345,9 +388,9 @@ export default function ReportsClient() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             {[
-              { l: 'Total Expenses', v: `$${totalExpAmt.toLocaleString()}`, c: C.danger },
-              { l: 'Approved', v: `$${expenses.filter((e: any) => e.status === 'Approved').reduce((s: number, e: any) => s + e.amount, 0).toLocaleString()}`, c: C.success },
-              { l: 'Pending', v: `$${expenses.filter((e: any) => e.status === 'Pending').reduce((s: number, e: any) => s + e.amount, 0).toLocaleString()}`, c: C.warning },
+              { l: 'Total Expenses', v: `${currencySymbol}${totalExpAmt.toLocaleString()}`, c: C.danger },
+              { l: 'Approved', v: `${currencySymbol}${expenses.filter((e: any) => e.status === 'Approved').reduce((s: number, e: any) => s + e.amount, 0).toLocaleString()}`, c: C.success },
+              { l: 'Pending', v: `${currencySymbol}${expenses.filter((e: any) => e.status === 'Pending').reduce((s: number, e: any) => s + e.amount, 0).toLocaleString()}`, c: C.warning },
             ].map((s) => (
               <div key={s.l} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 22, textAlign: 'center' }}>
                 <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.l}</p>
@@ -359,7 +402,8 @@ export default function ReportsClient() {
             <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>All Expense Records</h3>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: C.bg }}>
                 {['Description', 'Category', 'Department', 'Amount', 'Date', 'Status'].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>{h}</th>
@@ -371,7 +415,7 @@ export default function ReportsClient() {
                     <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>{exp.description}</td>
                     <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{exp.category}</td>
                     <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{exp.department}</td>
-                    <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 700, color: C.text }}>${(exp.amount || 0).toLocaleString()}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 700, color: C.text }}>{currencySymbol}{(exp.amount || 0).toLocaleString()}</td>
                     <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{exp.date?.slice(0, 10)}</td>
                     <td style={{ padding: '11px 16px' }}><Badge label={exp.status} /></td>
                   </tr>
@@ -379,6 +423,53 @@ export default function ReportsClient() {
                 {expenses.length === 0 && <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>No expenses recorded</td></tr>}
               </tbody>
             </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeReport === 'investors' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
+            {[
+              { l: 'Total Investors', v: investors.length, c: C.accent },
+              { l: 'Active Investors', v: investors.filter((i: any) => i.isActive).length, c: C.success },
+              { l: 'Total Investments', v: `${currencySymbol}${totalInvestments.toLocaleString()}`, c: C.warning },
+              { l: 'Avg Investment', v: investors.length > 0 ? `${currencySymbol}${Math.round(totalInvestments / investors.length).toLocaleString()}` : '—', c: C.purple },
+            ].map((s) => (
+              <div key={s.l} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 22, textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.l}</p>
+                <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: s.c }}>{s.v}</h2>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>All Investor Records</h3>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr style={{ background: C.bg }}>
+                {['Name', 'Email', 'Company', 'Amount', 'Date', 'Type', 'Status'].map(h => (
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {investors.map((inv: any, i: number) => (
+                  <tr key={inv._id} style={{ borderBottom: i < investors.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                    <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>{inv.name}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{inv.email}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{inv.company || '—'}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 700, color: C.accent }}>{currencySymbol}{(inv.investmentAmount || 0).toLocaleString()}</td>
+                    <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{inv.investmentDate?.slice(0, 10) || '—'}</td>
+                    <td style={{ padding: '11px 16px' }}><Badge label={inv.investmentType || 'Other'} /></td>
+                    <td style={{ padding: '11px 16px' }}><Badge label={inv.isActive ? 'Active' : 'Inactive'} /></td>
+                  </tr>
+                ))}
+                {investors.length === 0 && <tr><td colSpan={7} style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>No investors found</td></tr>}
+              </tbody>
+            </table>
+            </div>
           </div>
         </div>
       )}

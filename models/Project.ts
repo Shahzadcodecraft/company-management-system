@@ -8,6 +8,7 @@ export interface IProject extends Document {
   priority: 'Low' | 'Medium' | 'High' | 'Critical';
   budget: number;
   spent: number;
+  revenue: number;                    // Total revenue generated from project
   progress: number;
   startDate: Date;
   endDate: Date;
@@ -26,6 +27,7 @@ const ProjectSchema = new Schema<IProject>(
     priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Medium' },
     budget: { type: Number, default: 0, min: 0 },
     spent: { type: Number, default: 0, min: 0 },
+    revenue: { type: Number, default: 0, min: 0 },
     progress: { type: Number, default: 0, min: 0, max: 100 },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

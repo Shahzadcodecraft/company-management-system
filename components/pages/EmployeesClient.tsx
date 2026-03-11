@@ -88,7 +88,7 @@ function Field({ label, children }: any) {
 
 const IS = { background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', color: C.text, fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: 'none', width: '100%' };
 
-const EMPTY = { name: '', email: '', role: 'Employee', department: '', salary: '', status: 'Active', phone: '', performance: 85, joinDate: '', endDate: '' };
+const EMPTY = { name: '', email: '', role: 'Employee', department: '', salary: '', status: 'Active', workType: 'Onsite', phone: '', performance: 85, joinDate: '', endDate: '' };
 
 export default function EmployeesClient() {
   const [search, setSearch] = useState('');
@@ -135,7 +135,7 @@ export default function EmployeesClient() {
   }
 
   function openAdd() { setForm(EMPTY); setSelected(null); setModal('add'); }
-  function openEdit(e: any) { setSelected(e); setForm({ name: e.name, email: e.email, role: e.role, department: e.department?._id || e.department || '', salary: String(e.salary), status: e.status, phone: e.phone || '', performance: e.performance || 85, joinDate: e.joinDate ? new Date(e.joinDate).toISOString().split('T')[0] : '', endDate: e.endDate ? new Date(e.endDate).toISOString().split('T')[0] : '' }); setModal('edit'); }
+  function openEdit(e: any) { setSelected(e); setForm({ name: e.name, email: e.email, role: e.role, department: e.department?._id || e.department || '', salary: String(e.salary), status: e.status, workType: e.workType || 'Onsite', phone: e.phone || '', performance: e.performance || 85, joinDate: e.joinDate ? new Date(e.joinDate).toISOString().split('T')[0] : '', endDate: e.endDate ? new Date(e.endDate).toISOString().split('T')[0] : '' }); setModal('edit'); }
   function openView(e: any) { setSelected(e); setModal('view'); }
 
   async function handleSave() {
@@ -167,7 +167,7 @@ export default function EmployeesClient() {
       </div>
 
       {/* Summary */}
-      <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
         {[{ l: 'Total', v: total, c: C.accent }, { l: 'Active', v: data?.employees?.filter((e: any) => e.status === 'Active').length || 0, c: C.success }, { l: 'Inactive', v: data?.employees?.filter((e: any) => e.status !== 'Active').length || 0, c: C.danger }].map(s => (
           <div key={s.l} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 22, fontWeight: 800, color: s.c }}>{s.v}</span>
@@ -186,7 +186,7 @@ export default function EmployeesClient() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'DM Sans',sans-serif" }}>
               <thead>
                 <tr style={{ background: C.bg }}>
-                  {['Employee', 'Role', 'Department', 'Salary', 'Performance', 'Status', 'Actions'].map(h => (
+                  {['Employee', 'Role', 'Department', 'Salary', 'Performance', 'Status', 'Work Type', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -207,7 +207,7 @@ export default function EmployeesClient() {
                     </td>
                     <td style={{ padding: '14px 16px' }}><Badge>{emp.role}</Badge></td>
                     <td style={{ padding: '14px 16px', fontSize: 13, color: C.text }}>{emp.department?.name || emp.department || '—'}</td>
-                    <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>${(emp.salary || 0).toLocaleString()}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>₨{(emp.salary || 0).toLocaleString()}</td>
                     <td style={{ padding: '14px 16px', minWidth: 130 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ flex: 1 }}><ProgressBar value={emp.performance || 85} /></div>
@@ -215,6 +215,7 @@ export default function EmployeesClient() {
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px' }}><Badge>{emp.status}</Badge></td>
+                    <td style={{ padding: '14px 16px' }}><Badge>{emp.workType || 'Onsite'}</Badge></td>
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <Btn size="sm" variant="ghost" onClick={() => openView(emp)}>View</Btn>
@@ -225,7 +226,7 @@ export default function EmployeesClient() {
                   </tr>
                 ))}
                 {employees.length === 0 && (
-                  <tr><td colSpan={7} style={{ padding: 48, textAlign: 'center', color: C.textMuted, fontSize: 13 }}>No employees found. Add your first employee above.</td></tr>
+                  <tr><td colSpan={8} style={{ padding: 48, textAlign: 'center', color: C.textMuted, fontSize: 13 }}>No employees found. Add your first employee above.</td></tr>
                 )}
               </tbody>
             </table>
@@ -235,7 +236,7 @@ export default function EmployeesClient() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
           <Btn variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Prev</Btn>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
             <Btn
@@ -268,19 +269,26 @@ export default function EmployeesClient() {
             </Field>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-            <Field label="Salary ($)"><input style={IS} type="number" value={form.salary} onChange={(e) => set('salary')(e.target.value)} placeholder="80000" /></Field>
+            <Field label="Salary (₨)"><input style={IS} type="number" value={form.salary} onChange={(e) => set('salary')(e.target.value)} placeholder="80000" /></Field>
             <Field label="Performance (0-100)"><input style={IS} type="number" min="0" max="100" value={form.performance} onChange={(e) => set('performance')(e.target.value)} placeholder="85" /></Field>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+            <Field label="Work Type">
+              <select style={IS} value={form.workType} onChange={(e) => set('workType')(e.target.value)}>
+                {['Onsite', 'Remote', 'Hybrid'].map(w => <option key={w}>{w}</option>)}
+              </select>
+            </Field>
             <Field label="Status">
               <select style={IS} value={form.status} onChange={(e) => set('status')(e.target.value)}>
                 {['Active', 'Inactive', 'On Leave'].map(s => <option key={s}>{s}</option>)}
               </select>
             </Field>
-            <Field label="Phone (optional)"><input style={IS} value={form.phone} onChange={(e) => set('phone')(e.target.value)} placeholder="+1 555 000 0000" /></Field>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <Field label="Join Date"><input style={IS} type="date" value={form.joinDate} onChange={(e) => set('joinDate')(e.target.value)} /></Field>
+            <Field label="Phone (optional)"><input style={IS} value={form.phone} onChange={(e) => set('phone')(e.target.value)} placeholder="+92 300 0000000" /></Field>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
             <Field label="End Date (optional)"><input style={IS} type="date" value={form.endDate} onChange={(e) => set('endDate')(e.target.value)} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -299,13 +307,13 @@ export default function EmployeesClient() {
               <div>
                 <h2 style={{ margin: '0 0 4px', fontSize: isMobile ? 18 : 20, fontWeight: 800, color: C.text }}>{selected.name}</h2>
                 <p style={{ margin: '0 0 10px', fontSize: 13, color: C.textMuted }}>{selected.email}</p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Badge>{selected.role}</Badge><Badge>{selected.status}</Badge></div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Badge>{selected.role}</Badge><Badge>{selected.status}</Badge><Badge>{selected.workType || 'Onsite'}</Badge></div>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               {[
                 ['Department', selected.department?.name || selected.department || '—'],
-                ['Salary', `$${(selected.salary || 0).toLocaleString()}`],
+                ['Salary', `₨${(selected.salary || 0).toLocaleString()}`],
                 ['Join Date', selected.joinDate ? new Date(selected.joinDate).toLocaleDateString() : '—'],
                 ['End Date', selected.endDate ? new Date(selected.endDate).toLocaleDateString() : '—'],
                 ['Phone', selected.phone || '—'],

@@ -43,7 +43,7 @@ export default function SettingsClient() {
 
   // State for non-text settings only
   const [timezone, setTimezone] = useState('UTC-5');
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('PKR');
   const [notifications, setNotifications] = useState(true);
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [twoFA, setTwoFA] = useState(false);
@@ -56,7 +56,7 @@ export default function SettingsClient() {
     if (settingsData && !initialized) {
       // Only set non-text state, text inputs use defaultValue
       setTimezone(settingsData.settings?.timezone || 'UTC-5');
-      setCurrency(settingsData.settings?.currency || 'USD');
+      setCurrency(settingsData.settings?.currency || 'PKR');
       setNotifications(settingsData.settings?.notifications ?? true);
       setEmailAlerts(settingsData.settings?.emailAlerts ?? true);
       setTwoFA(settingsData.settings?.twoFA ?? false);
@@ -147,7 +147,7 @@ export default function SettingsClient() {
   function resetDefaults() {
     if (companyNameRef.current) companyNameRef.current.value = 'NexusCorp Inc.';
     setTimezone('UTC-5');
-    setCurrency('USD');
+    setCurrency('PKR');
     setNotifications(true);
     setEmailAlerts(true);
     setTwoFA(false);
@@ -158,7 +158,7 @@ export default function SettingsClient() {
       settings: {
         companyName: 'NexusCorp Inc.',
         timezone: 'UTC-5',
-        currency: 'USD',
+        currency: 'PKR',
         notifications: true,
         emailAlerts: true,
         twoFA: false,
@@ -240,7 +240,7 @@ export default function SettingsClient() {
         </Row>
         <Row label="Currency" desc="Default currency for finance module">
           <select style={{ ...IS, maxWidth: 120 }} value={currency} onChange={(e) => setCurrency(e.target.value)}>
-            {['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'].map(c => <option key={c}>{c}</option>)}
+            {['PKR', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'].map(c => <option key={c}>{c}</option>)}
           </select>
         </Row>
       </Section>

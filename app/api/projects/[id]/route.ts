@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import dbConnect from '@/lib/db';
 import Project from '@/models/Project';
+import Department from '@/models/Department';
+import Employee from '@/models/Employee';
 import { getSession, successResponse, errorResponse, logActivity } from '@/lib/api-helpers';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +16,7 @@ const UpdateSchema = z.object({
   budget: z.number().min(0).optional(),
   progress: z.number().min(0).max(100).optional(),
   spent: z.number().min(0).optional(),
+  revenue: z.number().min(0).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   team: z.array(z.string()).optional(),
@@ -45,14 +48,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if ((session.user as any).role === 'Employee') return errorResponse('Forbidden', 403);
 
     const body = await req.json();
+    
     const parsed = UpdateSchema.safeParse(body);
-    if (!parsed.success) return errorResponse(parsed.error.errors[0].message, 422);
+    if (!parsed.success) {
+      return errorResponse(parsed.error.errors[0].message, 422);
+    }
 
     await dbConnect();
     const oldProject = await Project.findById(params.id).lean();
     if (!oldProject) return errorResponse('Project not found', 404);
 
-    const project = await Project.findByIdAndUpdate(params.id, parsed.data, { new: true })
+    const project = await Project.findByIdAndUpdate(params.id, parsed.data, { new: true, runValidators: true })
       .populate('team', 'name avatar email')
       .populate('department', 'name');
 

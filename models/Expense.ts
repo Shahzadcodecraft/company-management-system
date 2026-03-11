@@ -15,6 +15,7 @@ export interface IExpense extends Document {
   submittedBy: Types.ObjectId;
   reviewedBy?: Types.ObjectId;
   notes?: string;
+  receiptImage?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,7 @@ const ExpenseSchema = new Schema<IExpense>(
     submittedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     notes: { type: String },
+    receiptImage: { type: String },
   },
   { timestamps: true, strict: true }
 );

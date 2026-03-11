@@ -1,14 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, useDepartments, useActivities } from '@/lib/hooks/useApi';
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, useDepartments, useActivities, useSettings } from '@/lib/hooks/useApi';
 
 const C = { accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', purple: 'var(--purple)', text: 'var(--text)', textMuted: 'var(--text-muted)', surface: 'var(--surface)', border: 'var(--border)', bg: 'var(--bg)', borderLight: 'var(--border-light)', surfaceHover: 'var(--surface-hover)' };
 const IS = { background: C.bg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 14px', color: C.text, fontFamily: "'DM Sans',sans-serif", fontSize: 13, outline: 'none', width: '100%' };
 
 function getStatusColor(s: string) { return ({ 'Planning': C.warning, 'In Progress': C.accent, 'Review': C.purple, 'Completed': C.success, 'On Hold': C.textMuted })[s] || C.textMuted; }
 function getPriorityColor(p: string) { return ({ 'Low': C.textMuted, 'Medium': C.warning, 'High': C.danger, 'Critical': '#FF1A2E' })[p] || C.textMuted; }
-function fmtMoney(n: number) { return n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`; }
+function fmtMoney(n: number, currency = 'PKR') {
+  const symbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  return n >= 1000 ? `${symbol}${(n / 1000).toFixed(0)}K` : `${symbol}${n}`;
+}
 
 function Badge({ label, color }: { label: string; color: string }) {
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, color, background: `${color}18`, border: `1px solid ${color}30`, whiteSpace: 'nowrap' }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: color }} />{label}</span>;
@@ -62,7 +65,7 @@ function getActionColor(action: string) {
   return colors[action] || C.textMuted;
 }
 
-const EMPTY = { title: '', description: '', department: '', status: 'Planning', priority: 'Medium', budget: '', spent: '0', progress: '0', startDate: '', endDate: '' };
+const EMPTY = { title: '', description: '', department: '', status: 'Planning', priority: 'Medium', budget: '', spent: '0', revenue: '0', progress: '0', startDate: '', endDate: '' };
 const STATUSES = ['Planning', 'In Progress', 'Review', 'Completed', 'On Hold'];
 const PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 
@@ -73,6 +76,9 @@ export default function ProjectsClient() {
   const [selected, setSelected] = useState<any>(null);
   const [form, setForm] = useState<any>(EMPTY);
   const [isMobile, setIsMobile] = useState(false);
+  const { data: settingsData } = useSettings();
+  const currency = settingsData?.settings?.currency || 'PKR';
+  const currencySymbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -97,18 +103,36 @@ export default function ProjectsClient() {
   const projects = data?.projects || [];
   const set = (k: string) => (v: string) => setForm((p: any) => ({ ...p, [k]: v }));
 
-  function openEdit(p: any) { setSelected(p); setForm({ title: p.title, description: p.description, department: p.department?._id || '', status: p.status, priority: p.priority, budget: String(p.budget), spent: String(p.spent || 0), progress: String(p.progress || 0), startDate: p.startDate?.slice(0, 10) || '', endDate: p.endDate?.slice(0, 10) || '' }); setModal(true); }
+  function openEdit(p: any) { setSelected(p); setForm({ title: p.title, description: p.description, department: p.department?._id || '', status: p.status, priority: p.priority, budget: String(p.budget), spent: String(p.spent || 0), revenue: String(p.revenue || 0), progress: String(p.progress || 0), startDate: p.startDate?.slice(0, 10) || '', endDate: p.endDate?.slice(0, 10) || '' }); setModal(true); }
   function openView(p: any) { setSelected(p); setViewModal(true); }
   function openAdd() { setSelected(null); setForm(EMPTY); setModal(true); }
 
   async function handleSave() {
-    const payload = { ...form, budget: parseFloat(form.budget) || 0, spent: parseFloat(form.spent) || 0, progress: parseInt(form.progress) || 0 };
-    if (selected) {
-      await update.mutateAsync(payload);
-    } else {
-      await create.mutateAsync(payload);
+    console.log('handleSave - form.revenue:', form.revenue, 'type:', typeof form.revenue);
+    
+    const payload = { 
+      ...form, 
+      budget: parseFloat(form.budget) || 0, 
+      spent: parseFloat(form.spent) || 0, 
+      revenue: parseFloat(form.revenue) || 0,
+      progress: parseInt(form.progress) || 0,
+    };
+    
+    console.log('handleSave - payload:', payload);
+    
+    try {
+      if (selected) {
+        await update.mutateAsync(payload);
+        console.log('Project updated successfully');
+      } else {
+        await create.mutateAsync(payload);
+        console.log('Project created successfully');
+      }
+      setModal(false);
+    } catch (error: any) {
+      console.error('handleSave error:', error);
+      alert('Failed to save project: ' + (error.message || 'Unknown error'));
     }
-    setModal(false);
   }
 
   const Label = ({ text }: any) => <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>{text}</label>;
@@ -129,9 +153,11 @@ export default function ProjectsClient() {
             const budgetPct = p.budget > 0 ? (p.spent / p.budget) * 100 : 0;
             return (
               <div key={p._id} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 22 }}>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  <Badge label={p.status} color={getStatusColor(p.status)} />
-                  <Badge label={p.priority} color={getPriorityColor(p.priority)} />
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <Badge label={p.status} color={getStatusColor(p.status)} />
+                    <Badge label={p.priority} color={getPriorityColor(p.priority)} />
+                  </div>
                 </div>
                 <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: C.text }}>{p.title}</h3>
                 <p style={{ margin: '0 0 16px', fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>{p.description || 'No description'}</p>
@@ -140,14 +166,29 @@ export default function ProjectsClient() {
                     <span style={{ fontSize: 12, color: C.textMuted }}>Progress</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{p.progress || 0}%</span>
                   </div>
-                  <div style={{ height: 7, background: C.border, borderRadius: 7 }}>
+                  <div style={{ height: 7, background: C.border, borderRadius: 7, marginBottom: 12 }}>
                     <div style={{ height: '100%', width: `${p.progress || 0}%`, borderRadius: 7, background: (p.progress || 0) >= 100 ? C.success : (p.progress || 0) > 50 ? C.accent : C.warning, transition: 'width 0.6s ease' }} />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                    <span style={{ fontSize: 11, color: C.textMuted }}>Budget: {fmtMoney(p.spent || 0)} / {fmtMoney(p.budget || 0)}</span>
-                    <span style={{ fontSize: 11, color: budgetPct > 90 ? C.danger : C.textMuted }}>{Math.round(budgetPct)}% used</span>
+                  
+                  {/* Budget & Revenue Row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+                    <div style={{ background: C.bg, borderRadius: 8, padding: 10, border: `1px solid ${C.border}` }}>
+                      <div style={{ fontSize: 10, color: C.textMuted, marginBottom: 4 }}>Budget</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{fmtMoney(p.spent || 0, currency)} / {fmtMoney(p.budget || 0, currency)}</div>
+                      <div style={{ fontSize: 10, color: budgetPct > 90 ? C.danger : C.textMuted, marginTop: 2 }}>{Math.round(budgetPct)}% used</div>
+                    </div>
+                    <div style={{ background: `${C.success}10`, borderRadius: 8, padding: 10, border: `1px solid ${C.success}30` }}>
+                      <div style={{ fontSize: 10, color: C.success, marginBottom: 4 }}>Revenue</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.success }}>{fmtMoney(p.revenue || 0, currency)}</div>
+                      {p.revenue > 0 && p.budget > 0 && (
+                        <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>
+                          {((p.revenue / p.budget) * 100).toFixed(0)}% of budget
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ height: 4, background: C.border, borderRadius: 4, marginTop: 4 }}>
+                  
+                  <div style={{ height: 4, background: C.border, borderRadius: 4 }}>
                     <div style={{ height: '100%', width: `${Math.min(100, budgetPct)}%`, borderRadius: 4, background: budgetPct > 90 ? C.danger : budgetPct > 70 ? C.warning : C.success }} />
                   </div>
                 </div>
@@ -184,14 +225,15 @@ export default function ProjectsClient() {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
-            <div><Label text="Budget ($)" /><input style={IS} type="number" value={form.budget} onChange={(e) => set('budget')(e.target.value)} placeholder="100000" /></div>
-            <div><Label text="Spent ($)" /><input style={IS} type="number" value={form.spent} onChange={(e) => set('spent')(e.target.value)} placeholder="0" /></div>
+            <div><Label text={`Budget (${currencySymbol})`} /><input style={IS} type="number" value={form.budget} onChange={(e) => set('budget')(e.target.value)} placeholder="100000" /></div>
+            <div><Label text={`Spent (${currencySymbol})`} /><input style={IS} type="number" value={form.spent} onChange={(e) => set('spent')(e.target.value)} placeholder="0" /></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+            <div><Label text={`Revenue (${currencySymbol})`} /><input style={IS} type="number" value={form.revenue} onChange={(e) => set('revenue')(e.target.value)} placeholder="0" /></div>
             <div><Label text="Progress (0-100%)" /><input style={IS} type="number" min="0" max="100" value={form.progress} onChange={(e) => set('progress')(e.target.value)} placeholder="0" /></div>
-            <div><Label text="Start Date" /><input style={IS} type="date" value={form.startDate} onChange={(e) => set('startDate')(e.target.value)} /></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
+            <div><Label text="Start Date" /><input style={IS} type="date" value={form.startDate} onChange={(e) => set('startDate')(e.target.value)} /></div>
             <div><Label text="End Date" /><input style={IS} type="date" value={form.endDate} onChange={(e) => set('endDate')(e.target.value)} /></div>
           </div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
@@ -221,8 +263,12 @@ export default function ProjectsClient() {
               </div>
               <div style={{ background: C.bg, borderRadius: 12, padding: 16, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Budget</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMoney(selected.budget || 0)}</div>
-                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Spent: {fmtMoney(selected.spent || 0)}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{fmtMoney(selected.budget || 0, currency)}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>Spent: {fmtMoney(selected.spent || 0, currency)}</div>
+              </div>
+              <div style={{ background: `${C.success}10`, borderRadius: 12, padding: 16, border: `1px solid ${C.success}30` }}>
+                <div style={{ fontSize: 11, color: C.success, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Revenue</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.success }}>{fmtMoney(selected.revenue || 0, currency)}</div>
               </div>
             </div>
 
