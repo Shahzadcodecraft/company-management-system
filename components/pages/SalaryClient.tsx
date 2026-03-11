@@ -196,6 +196,9 @@ export default function SalaryClient() {
   const [isMobile, setIsMobile] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'summary'>('list');
   
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [isLoadingYears, setIsLoadingYears] = useState(false);
+  
   const { data: settingsData } = useSettings();
   const currency = settingsData?.settings?.currency || 'PKR';
   const currencySymbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
@@ -206,6 +209,27 @@ export default function SalaryClient() {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Fetch available years from API
+  useEffect(() => {
+    async function fetchYears() {
+      setIsLoadingYears(true);
+      try {
+        const response = await fetch('/api/salaries/years');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data?.years) {
+            setAvailableYears(data.data.years);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch years:', error);
+      } finally {
+        setIsLoadingYears(false);
+      }
+    }
+    fetchYears();
   }, []);
 
   const params: Record<string, string> = {};
@@ -467,16 +491,15 @@ export default function SalaryClient() {
             </select>
 
             {/* Year Filter */}
-            <select 
-              style={{ ...IS, width: 'auto', padding: '6px 10px', fontSize: 11 }} 
-              value={filterYear} 
+            <input
+              type="number"
+              min="2000"
+              max="2100"
+              placeholder="Year"
+              style={{ ...IS, width: '80px', padding: '6px 10px', fontSize: 11 }}
+              value={filterYear}
               onChange={(e) => { setFilterYear(e.target.value); setPage(1); }}
-            >
-              <option value="">All Years</option>
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
+            />
 
             {/* Employee Filter */}
             <select 
@@ -689,11 +712,14 @@ export default function SalaryClient() {
               </div>
               <div>
                 <Label text="Year" />
-                <select style={IS} value={form.year} onChange={(e) => set('year')(e.target.value)}>
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+                <input
+                  type="number"
+                  min="2000"
+                  max="2100"
+                  style={IS}
+                  value={form.year}
+                  onChange={(e) => set('year')(e.target.value)}
+                />
               </div>
             </div>
           </div>
