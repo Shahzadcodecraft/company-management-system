@@ -45,7 +45,7 @@ function ActivityIcon({ action }: { action: string }) {
     updated: '✏️',
     deleted: '🗑️',
     status_changed: '🔄',
-    budget_updated: '💰',
+    budget_updated: '₨',
     progress_updated: '📊',
     assigned: '👤',
     commented: '💬',

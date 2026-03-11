@@ -95,7 +95,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           field: 'budget',
           oldValue: oldProject.budget,
           newValue: parsed.data.budget,
-          message: `Budget updated from $${oldProject.budget?.toLocaleString()} to $${parsed.data.budget?.toLocaleString()}`,
+          message: `Budget updated from PKR ${oldProject.budget?.toLocaleString()} to PKR ${parsed.data.budget?.toLocaleString()}`,
         },
       });
     }
@@ -127,7 +127,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
           field: 'spent',
           oldValue: oldProject.spent,
           newValue: parsed.data.spent,
-          message: `Spending updated from $${(oldProject.spent || 0).toLocaleString()} to $${parsed.data.spent.toLocaleString()}`,
+          message: `Spending updated from PKR ${(oldProject.spent || 0).toLocaleString()} to PKR ${parsed.data.spent.toLocaleString()}`,
         },
       });
     }

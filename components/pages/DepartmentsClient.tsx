@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from '@/lib/hooks/useApi';
+import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment, useSettings } from '@/lib/hooks/useApi';
 
 const C = { accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', purple: 'var(--purple)', text: 'var(--text)', textMuted: 'var(--text-muted)', surface: 'var(--surface)', border: 'var(--border)', bg: 'var(--bg)', borderLight: 'var(--border-light)', surfaceHover: 'var(--surface-hover)' };
 const DEPT_COLORS = [C.accent, C.success, C.purple, C.warning, C.danger];
@@ -38,6 +38,14 @@ export default function DepartmentsClient() {
   const [page, setPage] = useState(1);
   const [isMobile, setIsMobile] = useState(false);
   const LIMIT = 10;
+
+  const { data: settingsData } = useSettings();
+  const currency = settingsData?.settings?.currency || 'PKR';
+  const currencySymbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  
+  function fmtMoney(n: number) {
+    return n >= 1000 ? `${currencySymbol}${Math.round(n / 1000)}K` : `${currencySymbol}${n}`;
+  }
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -91,7 +99,7 @@ export default function DepartmentsClient() {
               <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 800, color: C.text }}>{d.name}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 12, color: C.textMuted, lineHeight: 1.5 }}>{d.description || 'No description'}</p>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 10 }}>
-                {[['Head', d.head?.split(' ')[0] || '—'], ['Staff', d.employeeCount ?? 0], ['Budget', d.budget >= 1000 ? `$${Math.round(d.budget / 1000)}K` : `$${d.budget}`]].map(([l, v]) => (
+                {[['Head', d.head?.split(' ')[0] || '—'], ['Staff', d.employeeCount ?? 0], ['Budget', fmtMoney(d.budget || 0)]].map(([l, v]) => (
                   <div key={l} style={{ background: C.bg, borderRadius: 8, padding: '8px 10px', border: `1px solid ${C.border}` }}>
                     <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{l}</div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>{v}</div>
@@ -121,7 +129,7 @@ export default function DepartmentsClient() {
           <div><label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Department Name</label><input style={IS} value={form.name} onChange={(e) => set('name')(e.target.value)} placeholder="Engineering" /></div>
           <div><label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Department Head</label><input style={IS} value={form.head} onChange={(e) => set('head')(e.target.value)} placeholder="Jane Doe" /></div>
           <div><label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Description</label><input style={IS} value={form.description} onChange={(e) => set('description')(e.target.value)} placeholder="Department overview..." /></div>
-          <div><label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Annual Budget ($)</label><input style={IS} type="number" value={form.budget} onChange={(e) => set('budget')(e.target.value)} placeholder="500000" /></div>
+          <div><label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Annual Budget ({currencySymbol})</label><input style={IS} type="number" value={form.budget} onChange={(e) => set('budget')(e.target.value)} placeholder="500000" /></div>
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
             <Btn variant="ghost" onClick={() => setModal(false)}>Cancel</Btn>
             <Btn onClick={handleSave} disabled={create.isPending}>{create.isPending ? 'Saving...' : 'Save Department'}</Btn>
