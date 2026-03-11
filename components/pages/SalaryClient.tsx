@@ -674,7 +674,7 @@ export default function SalaryClient() {
                 style={IS} 
                 value={form.employee} 
                 onChange={(e) => set('employee')(e.target.value)}
-                disabled={updatingId || isLoadingEmployees}
+                disabled={!!updatingId || isLoadingEmployees}
               >
                 <option value="">Select Employee</option>
                 {employees.map((e: any) => <option key={e._id} value={e._id}>{e.name} - {e.email}</option>)}

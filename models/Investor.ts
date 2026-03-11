@@ -45,11 +45,6 @@ const InvestorSchema = new Schema<IInvestor>(
   { timestamps: true }
 );
 
-// Virtual for remaining amount
-InvestorSchema.virtual('remainingAdvanceAmount').get(function() {
-  return this.totalAdvanceAmount - this.usedAdvanceAmount;
-});
-
 // Index for faster queries
 InvestorSchema.index({ isActive: 1 });
 InvestorSchema.index({ name: 1 });
