@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useEmployees, useProjects, useTasks, useExpenses, useSettings, useInvestors } from '@/lib/hooks/useApi';
+import { useEmployees, useProjects, useTasks, useExpenses, useSettings, useInvestors, useSalaries } from '@/lib/hooks/useApi';
 import { jsPDF } from 'jspdf';
 
 const C = { accent: 'var(--accent)', success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', purple: 'var(--purple)', text: 'var(--text)', textMuted: 'var(--text-muted)', surface: 'var(--surface)', border: 'var(--border)', bg: 'var(--bg)', surfaceHover: 'var(--surface-hover)' };
@@ -25,6 +25,7 @@ export default function ReportsClient() {
   const { data: expData } = useExpenses({ limit: '100' });
   const { data: settingsData } = useSettings();
   const { data: invData } = useInvestors();
+  const { data: salaryData } = useSalaries({ limit: '100' });
   const currency = settingsData?.settings?.currency || 'PKR';
   const currencySymbol = currency === 'PKR' ? '₨' : currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
 
@@ -40,17 +41,22 @@ export default function ReportsClient() {
   const tasks: any[] = Array.isArray(tasksData) ? tasksData : [];
   const expenses: any[] = Array.isArray(expData) ? expData : [];
   const investors: any[] = invData?.investors || [];
+  const salaries: any[] = Array.isArray(salaryData) ? salaryData : [];
 
   const totalBudget = projects.reduce((s: number, p: any) => s + (p.budget || 0), 0);
   const totalSpent = projects.reduce((s: number, p: any) => s + (p.spent || 0), 0);
   const avgPerf = employees.length > 0 ? employees.reduce((s: number, e: any) => s + (e.performance || 85), 0) / employees.length : 0;
   const totalExpAmt = expenses.reduce((s: number, e: any) => s + (e.amount || 0), 0);
   const totalInvestments = investors.reduce((s: number, i: any) => s + (i.investmentAmount || 0), 0);
+  const totalSalaries = salaries.reduce((s: number, sal: any) => s + (sal.totalAmount || 0), 0);
+  const totalPaidSalaries = salaries.reduce((s: number, sal: any) => s + (sal.paidAmount || 0), 0);
+  const totalPendingSalaries = totalSalaries - totalPaidSalaries;
 
   const REPORTS = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'employees', label: 'Workforce', icon: '👥' },
     { id: 'projects', label: 'Projects', icon: '📐' },
+    { id: 'salary', label: 'Salary', icon: '💵' },
     { id: 'finance', label: 'Financial', icon: '💰' },
     { id: 'investors', label: 'Investors', icon: '🤝' },
   ];
@@ -88,6 +94,16 @@ export default function ReportsClient() {
           ])
         ];
         filename = `financial_report_${timestamp}.csv`;
+        break;
+      case 'salary':
+        rows = [
+          ['Employee', 'Month', 'Year', 'Base Salary', 'Bonus', 'Deductions', 'Total Amount', 'Paid Amount', 'Remaining', 'Status', 'Payment Method'],
+          ...salaries.map((s: any) => [
+            s.employee?.name || '', String(s.month), String(s.year), String(s.baseSalary || 0), String(s.bonus || 0), String(s.deductions || 0),
+            String(s.totalAmount || 0), String(s.paidAmount || 0), String((s.totalAmount || 0) - (s.paidAmount || 0)), s.status, s.paymentMethod || ''
+          ])
+        ];
+        filename = `salary_report_${timestamp}.csv`;
         break;
       case 'investors':
         rows = [
@@ -141,6 +157,10 @@ export default function ReportsClient() {
       case 'finance':
         doc.text('Financial Report', 14, y);
         filename = `financial_report_${timestamp}.pdf`;
+        break;
+      case 'salary':
+        doc.text('Salary Report', 14, y);
+        filename = `salary_report_${timestamp}.pdf`;
         break;
       case 'investors':
         doc.text('Investors Report', 14, y);
@@ -202,6 +222,24 @@ export default function ReportsClient() {
           doc.text(`Category: ${e.category} | Dept: ${e.department} | Amount: ${currency} ${amount} | Status: ${e.status}`, 14, y);
           y += 5;
           doc.text(`Date: ${e.date?.slice(0, 10) || '-'}`, 14, y);
+          y += 10;
+        });
+        break;
+      case 'salary':
+        salaries.forEach((s: any, i: number) => {
+          if (y > 270) { doc.addPage(); y = 20; }
+          doc.setFontSize(11);
+          (doc as any).setFont('helvetica', 'bold');
+          doc.text(`${i + 1}. ${s.employee?.name || 'Unknown'}`, 14, y);
+          y += 6;
+          (doc as any).setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          const totalAmt = (s.totalAmount || 0).toLocaleString();
+          const paidAmt = (s.paidAmount || 0).toLocaleString();
+          const remaining = ((s.totalAmount || 0) - (s.paidAmount || 0)).toLocaleString();
+          doc.text(`Period: ${s.month}/${s.year} | Base: ${currency} ${(s.baseSalary || 0).toLocaleString()} | Bonus: ${currency} ${(s.bonus || 0).toLocaleString()} | Deductions: ${currency} ${(s.deductions || 0).toLocaleString()}`, 14, y);
+          y += 5;
+          doc.text(`Total: ${currency} ${totalAmt} | Paid: ${currency} ${paidAmt} | Remaining: ${currency} ${remaining} | Status: ${s.status}`, 14, y);
           y += 10;
         });
         break;
@@ -319,6 +357,31 @@ export default function ReportsClient() {
               })}
               {expenses.length === 0 && <p style={{ color: C.textMuted, fontSize: 13 }}>No expense data</p>}
             </div>
+            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24 }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: C.text }}>Salary Overview</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {[
+                  { label: 'Total Salaries', value: `${currencySymbol}${totalSalaries.toLocaleString()}`, color: C.accent },
+                  { label: 'Paid Amount', value: `${currencySymbol}${totalPaidSalaries.toLocaleString()}`, color: C.success },
+                  { label: 'Pending Amount', value: `${currencySymbol}${totalPendingSalaries.toLocaleString()}`, color: totalPendingSalaries > 0 ? C.warning : C.success }
+                ].map((item) => (
+                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 13, color: C.textMuted }}>{item.label}</span>
+                    <span style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.value}</span>
+                  </div>
+                ))}
+                {salaries.length > 0 && (
+                  <div style={{ marginTop: 8, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>Payment Progress</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{totalSalaries > 0 ? Math.round((totalPaidSalaries / totalSalaries) * 100) : 0}%</span>
+                    </div>
+                    <div style={{ marginTop: 8 }}><ProgressBar value={totalSalaries > 0 ? (totalPaidSalaries / totalSalaries) * 100 : 0} color={C.success} /></div>
+                  </div>
+                )}
+                {salaries.length === 0 && <p style={{ color: C.textMuted, fontSize: 13 }}>No salary data</p>}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -423,6 +486,54 @@ export default function ReportsClient() {
                 {expenses.length === 0 && <tr><td colSpan={6} style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>No expenses recorded</td></tr>}
               </tbody>
             </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeReport === 'salary' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14 }}>
+            {[
+              { l: 'Total Salaries', v: salaries.length, c: C.accent },
+              { l: 'Total Amount', v: `${currencySymbol}${totalSalaries.toLocaleString()}`, c: C.warning },
+              { l: 'Paid Amount', v: `${currencySymbol}${totalPaidSalaries.toLocaleString()}`, c: C.success },
+              { l: 'Pending', v: `${currencySymbol}${totalPendingSalaries.toLocaleString()}`, c: C.danger },
+            ].map((s) => (
+              <div key={s.l} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 22, textAlign: 'center' }}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.l}</p>
+                <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: s.c }}>{s.v}</h2>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}` }}>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>All Salary Records</h3>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr style={{ background: C.bg }}>
+                  {['Employee', 'Period', 'Base Salary', 'Bonus', 'Deductions', 'Total', 'Paid', 'Remaining', 'Status'].map(h => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: `1px solid ${C.border}` }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {salaries.map((s: any, i: number) => (
+                    <tr key={s._id} style={{ borderBottom: i < salaries.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                      <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 600, color: C.text }}>{s.employee?.name || '—'}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 12, color: C.textMuted }}>{s.month}/{s.year}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: C.text }}>{currencySymbol}{(s.baseSalary || 0).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: C.success }}>+{currencySymbol}{(s.bonus || 0).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: C.danger }}>-{currencySymbol}{(s.deductions || 0).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 700, color: C.accent }}>{currencySymbol}{(s.totalAmount || 0).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, color: C.success }}>{currencySymbol}{(s.paidAmount || 0).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px', fontSize: 13, fontWeight: 600, color: ((s.totalAmount || 0) - (s.paidAmount || 0)) > 0 ? C.warning : C.success }}>{currencySymbol}{((s.totalAmount || 0) - (s.paidAmount || 0)).toLocaleString()}</td>
+                      <td style={{ padding: '11px 16px' }}><Badge label={s.status} /></td>
+                    </tr>
+                  ))}
+                  {salaries.length === 0 && <tr><td colSpan={9} style={{ padding: 40, textAlign: 'center', color: C.textMuted }}>No salary records found</td></tr>}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
