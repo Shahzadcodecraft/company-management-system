@@ -195,6 +195,7 @@ export default function SalaryClient() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'summary'>('list');
+  const [paymentType, setPaymentType] = useState<'full' | 'partial'>('full');
   
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [isLoadingYears, setIsLoadingYears] = useState(false);
@@ -317,10 +318,19 @@ export default function SalaryClient() {
   }
 
   async function handlePayment(salary: any) {
-    const paidAmount = parseFloat(form.paidAmount) || 0;
     const totalAmount = salary.totalAmount;
+    const remaining = totalAmount - salary.paidAmount;
     
-    const newPaidAmount = Math.min(salary.paidAmount + paidAmount, totalAmount);
+    let newPaidAmount: number;
+    
+    if (paymentType === 'full') {
+      // Fully paid - pay the full remaining amount
+      newPaidAmount = totalAmount;
+    } else {
+      // Partially paid - add the entered amount to existing paid amount
+      const paidAmount = parseFloat(form.paidAmount) || 0;
+      newPaidAmount = Math.min(salary.paidAmount + paidAmount, totalAmount);
+    }
     
     await updatePayment.mutateAsync({
       paidAmount: newPaidAmount,
@@ -331,6 +341,7 @@ export default function SalaryClient() {
     
     setPayModal(null);
     setForm((p: any) => ({ ...p, paidAmount: '0', transactionId: '' }));
+    setPaymentType('full');
   }
 
   function downloadCSV(data = salaryArr) {
@@ -606,6 +617,7 @@ export default function SalaryClient() {
                               variant="success" 
                               onClick={() => { 
                                 setPayModal(salary._id); 
+                                setPaymentType('full');
                                 setForm((p: any) => ({ ...p, paidAmount: String(remaining), paymentMethod: salary.paymentMethod || 'Bank Transfer' }));
                               }}
                             >
@@ -628,11 +640,11 @@ export default function SalaryClient() {
                                 employee: salary.employee?._id || '',
                                 month: salary.month,
                                 year: salary.year,
-                                baseSalary: String(salary.baseSalary),
-                                bonus: String(salary.bonus),
-                                deductions: String(salary.deductions),
-                                totalAmount: String(salary.totalAmount),
-                                paidAmount: String(salary.paidAmount),
+                                baseSalary: salary.baseSalary != null ? String(salary.baseSalary) : '',
+                                bonus: salary.bonus != null ? String(salary.bonus) : '0',
+                                deductions: salary.deductions != null ? String(salary.deductions) : '0',
+                                totalAmount: salary.totalAmount != null ? String(salary.totalAmount) : '0',
+                                paidAmount: salary.paidAmount != null ? String(salary.paidAmount) : '0',
                                 status: salary.status,
                                 paymentMethod: salary.paymentMethod || 'Bank Transfer',
                                 notes: salary.notes || '',
@@ -696,7 +708,16 @@ export default function SalaryClient() {
               <select 
                 style={IS} 
                 value={form.employee} 
-                onChange={(e) => set('employee')(e.target.value)}
+                onChange={(e) => {
+                  const employeeId = e.target.value;
+                  const selectedEmployee = employees.find((emp: any) => emp._id === employeeId);
+                  const employeeSalary = selectedEmployee?.salary;
+                  setForm((p: any) => ({ 
+                    ...p, 
+                    employee: employeeId,
+                    baseSalary: employeeSalary != null ? String(employeeSalary) : ''
+                  }));
+                }}
                 disabled={!!updatingId || isLoadingEmployees}
               >
                 <option value="">Select Employee</option>
@@ -728,11 +749,11 @@ export default function SalaryClient() {
             <div>
               <Label text={`Base Salary (${currencySymbol})`} />
               <input 
-                style={IS} 
+                style={{ ...IS, background: C.surfaceHover, opacity: 0.7, cursor: 'not-allowed' }} 
                 type="number" 
-                value={form.baseSalary} 
-                onChange={(e) => set('baseSalary')(e.target.value)} 
-                placeholder="50000" 
+                value={form.baseSalary || ''} 
+                disabled
+                placeholder="Auto-filled from employee" 
               />
             </div>
             <div>
@@ -794,7 +815,7 @@ export default function SalaryClient() {
       {/* Payment Modal */}
       <Modal 
         open={!!payModal} 
-        onClose={() => { setPayModal(null); setForm((p: any) => ({ ...p, paidAmount: '0', transactionId: '' })); }} 
+        onClose={() => { setPayModal(null); setForm((p: any) => ({ ...p, paidAmount: '0', transactionId: '' })); setPaymentType('full'); }} 
         title="Make Payment"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -802,6 +823,9 @@ export default function SalaryClient() {
             const salary = salaryArr.find((s) => s._id === payModal);
             if (!salary) return null;
             const remaining = salary.totalAmount - salary.paidAmount;
+            const paidAmount = parseFloat(form.paidAmount) || 0;
+            const partialNewTotal = salary.paidAmount + paidAmount;
+            const partialRemaining = salary.totalAmount - partialNewTotal;
             return (
               <>
                 <div style={{ background: C.bg, borderRadius: 10, padding: 16 }}>
@@ -827,19 +851,65 @@ export default function SalaryClient() {
                   </div>
                 </div>
 
+                {/* Payment Type Dropdown */}
                 <div>
-                  <Label text={`Payment Amount (${currencySymbol})`} />
-                  <input 
+                  <Label text="Payment Type" />
+                  <select 
                     style={IS} 
-                    type="number" 
-                    value={form.paidAmount} 
-                    onChange={(e) => set('paidAmount')(e.target.value)} 
-                    placeholder={String(remaining)}
-                    max={remaining}
-                  />
-                  <p style={{ margin: '4px 0 0', fontSize: 11, color: C.textMuted }}>Max: {fmtMoney(remaining, currency)}</p>
+                    value={paymentType} 
+                    onChange={(e) => { 
+                      const newType = e.target.value as 'full' | 'partial';
+                      setPaymentType(newType);
+                      if (newType === 'full') {
+                        setForm((p: any) => ({ ...p, paidAmount: String(remaining) }));
+                      } else {
+                        setForm((p: any) => ({ ...p, paidAmount: '' }));
+                      }
+                    }}
+                  >
+                    <option value="full">Fully Paid</option>
+                    <option value="partial">Partially Paid</option>
+                  </select>
                 </div>
 
+                {/* Amount Input - Only for Partial Payments */}
+                {paymentType === 'partial' && (
+                  <>
+                    <div>
+                      <Label text={`Payment Amount (${currencySymbol})`} />
+                      <input 
+                        style={IS} 
+                        type="number" 
+                        value={form.paidAmount} 
+                        onChange={(e) => set('paidAmount')(e.target.value)} 
+                        placeholder={`Enter amount up to ${remaining}`}
+                        max={remaining}
+                        min={0}
+                      />
+                      <p style={{ margin: '4px 0 0', fontSize: 11, color: C.textMuted }}>Max: {fmtMoney(remaining, currency)}</p>
+                    </div>
+
+                    {/* Show remaining after this payment */}
+                    {paidAmount > 0 && (
+                      <div style={{ 
+                        background: C.warning + '15', 
+                        border: `1px solid ${C.warning}40`, 
+                        borderRadius: 10, 
+                        padding: 12,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{ fontSize: 12, color: C.textMuted }}>Remaining After Payment</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: partialRemaining > 0 ? C.warning : C.success }}>
+                          {fmtMoney(Math.max(0, partialRemaining), currency)}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Payment Method & Transaction ID */}
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
                   <div>
                     <Label text="Payment Method" />
@@ -857,10 +927,15 @@ export default function SalaryClient() {
                     />
                   </div>
                 </div>
+
+                {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
-                  <Btn variant="ghost" onClick={() => { setPayModal(null); setForm((p: any) => ({ ...p, paidAmount: '0', transactionId: '' })); }}>Cancel</Btn>
-                  <Btn onClick={() => handlePayment(salary)} disabled={updatePayment.isPending || !form.paidAmount || parseFloat(form.paidAmount) <= 0}>
-                    {updatePayment.isPending ? 'Processing...' : 'Confirm Payment'}
+                  <Btn variant="ghost" onClick={() => { setPayModal(null); setForm((p: any) => ({ ...p, paidAmount: '0', transactionId: '' })); setPaymentType('full'); }}>Cancel</Btn>
+                  <Btn 
+                    onClick={() => handlePayment(salary)} 
+                    disabled={updatePayment.isPending || (paymentType === 'partial' && (!form.paidAmount || parseFloat(form.paidAmount) <= 0))}
+                  >
+                    {updatePayment.isPending ? 'Processing...' : (paymentType === 'full' ? 'Pay Full Amount' : 'Pay Partial Amount')}
                   </Btn>
                 </div>
               </>

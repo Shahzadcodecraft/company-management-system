@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
     }
 
     const employee = await Employee.create(data);
+
     return successResponse(employee, 201);
   } catch (err: any) {
     console.error('POST /api/employees error:', err);
