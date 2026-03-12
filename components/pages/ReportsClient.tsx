@@ -342,10 +342,10 @@ export default function ReportsClient() {
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24 }}>
               <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: C.text }}>Expense Summary</h3>
               {['Technology', 'Software', 'Marketing', 'HR', 'Operations'].map((cat, i) => {
-                const catTotal = expenses.filter((e: any) => e.category === cat).reduce((s: number, e: any) => s + e.amount, 0);
+                const catTotal = expenses.filter((e: any) => e.category === cat).reduce((s: number, e: any) => s + (e.amount || 0), 0);
                 const pct = totalExpAmt > 0 ? (catTotal / totalExpAmt) * 100 : 0;
                 const colors = [C.accent, C.success, C.warning, C.purple, C.danger];
-                return catTotal > 0 ? (
+                return (
                   <div key={cat} style={{ marginBottom: 12 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                       <span style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{cat}</span>
@@ -353,7 +353,7 @@ export default function ReportsClient() {
                     </div>
                     <ProgressBar value={pct} color={colors[i]} />
                   </div>
-                ) : null;
+                );
               })}
               {expenses.length === 0 && <p style={{ color: C.textMuted, fontSize: 13 }}>No expense data</p>}
             </div>
